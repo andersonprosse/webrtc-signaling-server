@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors'); // Importação importante
 
 const app = express();
-app.use(cors()); // Libera o Express para receber requisições externas
+app.use(cors()); // Libera o Express para receber requisições externashbk
 
 const server = http.createServer(app);
 
