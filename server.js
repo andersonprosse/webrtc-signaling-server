@@ -10,11 +10,13 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Permite que o site na HostGator ou Codespace conecte
+    origin: "*", 
     methods: ["GET", "POST"],
+    allowedHeaders: ["my-custom-header"],
     credentials: true
   },
-  allowEIO3: true // Compatibilidade com versões mais antigas de socket.io
+  transports: ['polling', 'websocket'], // Garante que ele tente as duas formas
+  allowEIO3: true // Compatibilidade extra
 });
 
 app.get('/', (req, res) => {
