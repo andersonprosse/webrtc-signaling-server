@@ -4,19 +4,21 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Liberação total de tráfego HTTP
+app.use(cors()); // Liberação total para o tráfego HTTP básico
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Aceita conexões de qualquer site (HostGator/Codespaces)
+    origin: "*", // Libera para qualquer site (HostGator, J7, PC)
     methods: ["GET", "POST"],
     credentials: true
   },
-  // FORÇAR WEBSOCKET: Isso mata o erro 426 e o erro de "xhr poll"
-  transports: ['websocket'], 
-  allowEIO3: true
+  // Permite que o sistema negocie o melhor protocolo automaticamente
+  transports: ['polling', 'websocket'], 
+  allowEIO3: true,
+  pingTimeout: 60000, // Espera 1 minuto antes de desconectar
+  pingInterval: 25000
 });
 
 app.get('/', (req, res) => {
@@ -28,6 +30,7 @@ io.on('connection', (socket) => {
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
+    console.log(`Dispositivo ${socket.id} entrou na sala ${roomId}`);
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
@@ -35,7 +38,9 @@ io.on('connection', (socket) => {
     socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
   });
 
-  socket.on('disconnect', () => console.log('❌ Desconectado'));
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Dispositivo desconectado:', reason);
+  });
 });
 
 const PORT = process.env.PORT || 3001;
