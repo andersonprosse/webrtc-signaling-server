@@ -4,19 +4,19 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Liberação total de headers HTTP
+app.use(cors()); // Liberação para o tráfego HTTP básico
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Aceita qualquer origem (HostGator, Codespaces, etc)
+    origin: "*", // Libera para qualquer origem, eliminando erros de domínio
     methods: ["GET", "POST"],
     credentials: true
   },
-  // FORÇAR WEBSOCKET NO SERVIDOR
-  transports: ['websocket'], 
-  allowUpgrades: false
+  // O Render às vezes precisa negociar o protocolo antes de subir para WebSocket
+  transports: ['polling', 'websocket'], 
+  allowEIO3: true
 });
 
 app.get('/', (req, res) => {
@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ Conexão Direta Estabelecida:', socket.id);
+  console.log('✅ Dispositivo Conectado:', socket.id);
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
