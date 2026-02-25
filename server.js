@@ -4,21 +4,19 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-
-// 1. Liberação de CORS total no Express
-app.use(cors()); 
+app.use(cors()); // Liberação total de headers HTTP
 
 const server = http.createServer(app);
 
-// 2. Configuração do Socket.io para nuvem (Render)
 const io = new Server(server, {
   cors: {
-    origin: "*", // Libera para qualquer origem durante os testes
+    origin: "*", // Aceita qualquer origem (HostGator, Codespaces, etc)
     methods: ["GET", "POST"],
     credentials: true
   },
-  allowEIO3: true, // Compatibilidade com versões anteriores
-  transports: ['websocket', 'polling'] 
+  // FORÇAR WEBSOCKET NO SERVIDOR
+  transports: ['websocket'], 
+  allowUpgrades: false
 });
 
 app.get('/', (req, res) => {
@@ -26,25 +24,18 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ Dispositivo Conectado:', socket.id);
+  console.log('✅ Conexão Direta Estabelecida:', socket.id);
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-    console.log(`Dispositivo ${socket.id} entrou na sala ${roomId}`);
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
   socket.on('signal', (data) => {
-    // Repassa o sinal WebRTC para o outro computador
-    socket.to(data.to).emit('signal', { 
-      from: socket.id, 
-      signal: data.signal 
-    });
+    socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
   });
 
-  socket.on('disconnect', (reason) => {
-    console.log('❌ Dispositivo desconectado:', reason);
-  });
+  socket.on('disconnect', () => console.log('❌ Desconectado'));
 });
 
 const PORT = process.env.PORT || 3001;
