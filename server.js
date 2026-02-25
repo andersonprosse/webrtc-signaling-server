@@ -1,22 +1,28 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors'); // Importação importante
+const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Libera o Express para receber requisições externashbk
+
+// 1. Liberação de CORS no nível do Express
+app.use(cors({
+  origin: "https://digitalconnect4.sti-ia.org",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 
 const server = http.createServer(app);
 
+// 2. Liberação de CORS no nível do Socket.io (O mais importante)
 const io = new Server(server, {
   cors: {
-    origin: "*", 
+    origin: "https://digitalconnect4.sti-ia.org", // Use o seu domínio exato
     methods: ["GET", "POST"],
-    allowedHeaders: ["my-custom-header"],
     credentials: true
   },
-  transports: ['polling', 'websocket'], // Garante que ele tente as duas formas
-  allowEIO3: true // Compatibilidade extra
+  allowEIO3: true,
+  transports: ['websocket', 'polling'] // Inverte a ordem para priorizar WebSocket
 });
 
 app.get('/', (req, res) => {
@@ -28,24 +34,16 @@ io.on('connection', (socket) => {
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-    console.log(`Dispositivo ${socket.id} entrou na sala: ${roomId}`);
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
   socket.on('signal', (data) => {
-    // Repassa o sinal para o destinatário específico
-    socket.to(data.to).emit('signal', { 
-      from: socket.id, 
-      signal: data.signal 
-    });
+    socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
   });
 
-  socket.on('disconnect', () => {
-    console.log('❌ Dispositivo desconectado');
-  });
+  socket.on('disconnect', () => console.log('❌ Dispositivo desconectado'));
 });
 
-// Porta dinâmica para o Render
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
