@@ -4,18 +4,21 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+app.use(cors()); // Liberação para tráfego HTTP básico
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Liberação total de domínios
-    methods: ["GET", "POST"]
+    origin: "*", // Liberação total para evitar conflitos com a HostGator
+    methods: ["GET", "POST"],
+    credentials: true
   },
-  // Permitimos que a conexão comece simples para garantir que o Render aceite
-  transports: ['polling', 'websocket'], 
-  allowEIO3: true // Compatibilidade com navegadores de dispositivos como o J7
+  // PRIORIDADE TOTAL PARA WEBSOCKET (Evita o Erro 426)
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 app.get('/', (req, res) => {
@@ -23,18 +26,26 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ Conexão estabelecida:', socket.id);
+  console.log('✅ Dispositivo Conectado:', socket.id);
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
+    console.log(`Dispositivo ${socket.id} entrou na sala ${roomId}`);
+    // Notifica os outros para iniciar o aperto de mão WebRTC
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
   socket.on('signal', (data) => {
-    socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
+    // Repassa os metadados de vídeo (SDP/Candidates)
+    socket.to(data.to).emit('signal', { 
+      from: socket.id, 
+      signal: data.signal 
+    });
   });
 
-  socket.on('disconnect', () => console.log('❌ Desconectado'));
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Desconectado:', reason);
+  });
 });
 
 const PORT = process.env.PORT || 3001;
