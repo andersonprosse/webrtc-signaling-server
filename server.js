@@ -5,24 +5,20 @@ const cors = require('cors');
 
 const app = express();
 
-// 1. Liberação de CORS no nível do Express
-app.use(cors({
-  origin: "https://digitalconnect4.sti-ia.org",
-  methods: ["GET", "POST"],
-  credentials: true
-}));
+// 1. Liberação de CORS total no Express
+app.use(cors()); 
 
 const server = http.createServer(app);
 
-// 2. Liberação de CORS no nível do Socket.io (O mais importante)
+// 2. Configuração do Socket.io para nuvem (Render)
 const io = new Server(server, {
   cors: {
-    origin: "https://digitalconnect4.sti-ia.org", // Use o seu domínio exato
+    origin: "*", // Libera para qualquer origem durante os testes
     methods: ["GET", "POST"],
     credentials: true
   },
-  allowEIO3: true,
-  transports: ['websocket', 'polling'] // Inverte a ordem para priorizar WebSocket
+  allowEIO3: true, // Compatibilidade com versões anteriores
+  transports: ['websocket', 'polling'] 
 });
 
 app.get('/', (req, res) => {
@@ -34,14 +30,21 @@ io.on('connection', (socket) => {
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
+    console.log(`Dispositivo ${socket.id} entrou na sala ${roomId}`);
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
   socket.on('signal', (data) => {
-    socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
+    // Repassa o sinal WebRTC para o outro computador
+    socket.to(data.to).emit('signal', { 
+      from: socket.id, 
+      signal: data.signal 
+    });
   });
 
-  socket.on('disconnect', () => console.log('❌ Dispositivo desconectado'));
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Dispositivo desconectado:', reason);
+  });
 });
 
 const PORT = process.env.PORT || 3001;
