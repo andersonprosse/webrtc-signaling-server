@@ -5,35 +5,38 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Configuração de CORS: essencial para o site na HostGator conversar com o Render
 const io = new Server(server, {
   cors: {
-    origin: "*", // Permite acesso de qualquer lugar (ideal para seus testes no SENAI)
+    origin: "*", 
     methods: ["GET", "POST"]
   }
 });
 
 app.get('/', (req, res) => {
-  res.send('Servidor de Sinalização Industrial ON! 🚀');
+  res.send('Digital Connect Signaling Server ON! 🚀');
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ Dispositivo conectado:', socket.id);
+  console.log('✅ Dispositivo ID:', socket.id);
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
+    console.log(`Dispositivo ${socket.id} entrou na sala ${roomId}`);
+    // Notifica os outros que alguém chegou para iniciar o WebRTC
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
   socket.on('signal', (data) => {
+    // Repassa o sinal SDP/IceCandidate para o outro dispositivo na sala
     socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
   });
 
-  socket.on('disconnect', () => console.log('❌ Dispositivo desconectado'));
+  socket.on('disconnect', () => {
+    console.log('❌ Dispositivo desconectado');
+  });
 });
 
-// AJUSTE PARA O RENDER: Ele escolhe a porta sozinho
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Sinalização rodando na porta ${PORT}`);
 });
