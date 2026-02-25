@@ -4,19 +4,18 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Liberação para o tráfego HTTP básico
+app.use(cors());
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Libera para qualquer origem, eliminando erros de domínio
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: "*", // Liberação total de domínios
+    methods: ["GET", "POST"]
   },
-  // O Render às vezes precisa negociar o protocolo antes de subir para WebSocket
+  // Permitimos que a conexão comece simples para garantir que o Render aceite
   transports: ['polling', 'websocket'], 
-  allowEIO3: true
+  allowEIO3: true // Compatibilidade com navegadores de dispositivos como o J7
 });
 
 app.get('/', (req, res) => {
@@ -24,7 +23,7 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ Dispositivo Conectado:', socket.id);
+  console.log('✅ Conexão estabelecida:', socket.id);
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
