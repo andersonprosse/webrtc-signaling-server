@@ -4,38 +4,46 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Liberação total para o tráfego HTTP básico
+
+// 1. Configuração Robusta de CORS para Express
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"]
+}));
 
 const server = http.createServer(app);
 
+// 2. Configuração Profissional do Socket.io
 const io = new Server(server, {
   cors: {
-    origin: "*", // Libera para qualquer site (HostGator, J7, PC)
+    origin: "*", 
     methods: ["GET", "POST"],
     credentials: true
   },
-  // Permite que o sistema negocie o melhor protocolo automaticamente
-  transports: ['polling', 'websocket'], 
-  allowEIO3: true,
-  pingTimeout: 60000, // Espera 1 minuto antes de desconectar
+  // TRAVA O PROTOCOLO: Só aceita WebSocket para evitar erro 426
+  transports: ['websocket'], 
+  allowUpgrades: false,
+  pingTimeout: 60000,
   pingInterval: 25000
 });
 
 app.get('/', (req, res) => {
-  res.send('Digital Connect Signaling Server ON! 🚀');
+  res.send('Sinalização Digital Connect: ONLINE 🚀');
 });
 
 io.on('connection', (socket) => {
-  console.log('✅ Dispositivo Conectado:', socket.id);
+  console.log('✅ Canal de Dados Estabelecido:', socket.id);
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-    console.log(`Dispositivo ${socket.id} entrou na sala ${roomId}`);
     socket.to(roomId).emit('user-joined', socket.id);
   });
 
   socket.on('signal', (data) => {
-    socket.to(data.to).emit('signal', { from: socket.id, signal: data.signal });
+    socket.to(data.to).emit('signal', { 
+      from: socket.id, 
+      signal: data.signal 
+    });
   });
 
   socket.on('disconnect', (reason) => {
@@ -45,5 +53,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor industrial rodando na porta ${PORT}`);
 });
